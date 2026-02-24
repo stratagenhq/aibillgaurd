@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail } from "@/emails/welcome";
 
 // Clerk webhook — syncs user.created / user.updated into our DB
 // TODO: add svix signature verification before production
@@ -35,6 +37,11 @@ export async function POST(req: Request) {
           target: users.id,
           set: { email, fullName, imageUrl: data.image_url, updatedAt: new Date() },
         });
+
+      if (type === "user.created" && email) {
+        const { subject, html } = welcomeEmail({ firstName: data.first_name });
+        await sendEmail({ to: email, subject, html });
+      }
     }
 
     return NextResponse.json({ received: true });

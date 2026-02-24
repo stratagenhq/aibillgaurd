@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import { users, providers } from "@/lib/db/schema";
 import { encryptApiKey } from "@/lib/encryption";
 import { validateOpenAIKey } from "@/lib/providers/openai";
-import type { ProviderType } from "@/lib/providers";
+import { PROVIDER_META, type ProviderType } from "@/lib/providers";
+import { sendEmail } from "@/lib/email";
+import { providerConnectedEmail } from "@/emails/provider-connected";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -54,6 +56,20 @@ export async function POST(req: Request) {
         status: "active",
       })
       .returning();
+
+    // Send confirmation email (fire-and-forget)
+    if (clerkUser) {
+      const email = clerkUser.emailAddresses[0]?.emailAddress;
+      if (email) {
+        const meta = PROVIDER_META[providerType as keyof typeof PROVIDER_META];
+        const { subject, html } = providerConnectedEmail({
+          firstName: clerkUser.firstName,
+          providerLabel: meta?.label ?? providerType,
+          syncSupported: meta?.syncSupported ?? false,
+        });
+        sendEmail({ to: email, subject, html }).catch(() => {});
+      }
+    }
 
     return NextResponse.json({ provider });
   } catch (err) {
