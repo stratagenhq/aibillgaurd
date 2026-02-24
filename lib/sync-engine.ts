@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { providers, usageSnapshots, users } from "@/lib/db/schema";
 import { decryptApiKey } from "@/lib/encryption";
 import { fetchOpenAIUsage } from "@/lib/providers/openai";
-import { fetchAnthropicUsage } from "@/lib/providers/anthropic";
 
 export async function syncProvider(
   providerId: string,
@@ -43,8 +42,6 @@ export async function syncProvider(
           syncError = msg;
         }
       }
-    } else if (provider.providerType === "anthropic") {
-      usageDays = await fetchAnthropicUsage(apiKey, 30);
     } else {
       // Provider type not yet supported — update timestamp but no data
       await db

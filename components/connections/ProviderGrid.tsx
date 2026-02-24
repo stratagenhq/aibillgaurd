@@ -48,6 +48,7 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
   const [error, setError] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<Record<string, { count: number; error?: string } | null>>({});
 
   const connectedMap = Object.fromEntries(connected.map((p) => [p.providerType, p]));
   const selectedMeta = selected ? PROVIDER_META[selected] : null;
@@ -110,12 +111,24 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
 
   async function handleSync(providerId: string) {
     setSyncingId(providerId);
+    setSyncResult((prev) => ({ ...prev, [providerId]: null }));
     try {
-      await fetch("/api/providers/auto-sync", {
+      const res = await fetch("/api/providers/auto-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ providerId }),
       });
+      const data = await res.json().catch(() => ({}));
+      const count: number = data.synced ?? 0;
+      const errors: string[] = data.errors ?? [];
+      setSyncResult((prev) => ({
+        ...prev,
+        [providerId]: { count, error: errors[0] },
+      }));
+      setTimeout(
+        () => setSyncResult((prev) => ({ ...prev, [providerId]: null })),
+        5000
+      );
       router.refresh();
     } finally {
       setSyncingId(null);
@@ -201,45 +214,70 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
 
               {/* Actions */}
               {isConnected ? (
-                <div className="flex items-center gap-2 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
-                  {conn.syncSupported ? (
+                <>
+                  <div className="flex items-center gap-2 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
+                    {conn.syncSupported ? (
+                      <button
+                        onClick={() => handleSync(conn.id)}
+                        disabled={!!isSyncing}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors"
+                        style={{
+                          background: "var(--bg3)",
+                          color: isSyncing ? "var(--muted)" : "var(--text)",
+                        }}
+                      >
+                        {isSyncing ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <RefreshCw size={11} />
+                        )}
+                        {isSyncing ? "Syncing…" : "Sync"}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        title="Sync not supported for this provider yet"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs cursor-not-allowed"
+                        style={{ background: "var(--bg3)", color: "var(--muted)", opacity: 0.5 }}
+                      >
+                        <RefreshCw size={11} />
+                        Sync
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleSync(conn.id)}
-                      disabled={!!isSyncing}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors"
+                      onClick={() => handleDelete(conn.id, conn.displayName || p.label)}
+                      disabled={!!isDeleting}
+                      className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs"
+                      style={{ color: "#ef4444" }}
+                    >
+                      {isDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                      Remove
+                    </button>
+                  </div>
+                  {syncResult[conn.id] && (
+                    <div
+                      className="text-xs px-2.5 py-1.5 rounded-lg"
                       style={{
-                        background: "var(--bg3)",
-                        color: isSyncing ? "var(--muted)" : "var(--text)",
+                        background: syncResult[conn.id]!.error
+                          ? "rgba(239,68,68,0.1)"
+                          : syncResult[conn.id]!.count > 0
+                          ? "rgba(34,197,94,0.1)"
+                          : "rgba(245,158,11,0.1)",
+                        color: syncResult[conn.id]!.error
+                          ? "#ef4444"
+                          : syncResult[conn.id]!.count > 0
+                          ? "#22c55e"
+                          : "#f59e0b",
                       }}
                     >
-                      {isSyncing ? (
-                        <Loader2 size={11} className="animate-spin" />
-                      ) : (
-                        <RefreshCw size={11} />
-                      )}
-                      {isSyncing ? "Syncing…" : "Sync"}
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      title="Sync not supported for this provider yet"
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs cursor-not-allowed"
-                      style={{ background: "var(--bg3)", color: "var(--muted)", opacity: 0.5 }}
-                    >
-                      <RefreshCw size={11} />
-                      Sync
-                    </button>
+                      {syncResult[conn.id]!.error
+                        ? syncResult[conn.id]!.error
+                        : syncResult[conn.id]!.count > 0
+                        ? `Synced ${syncResult[conn.id]!.count} records ✓`
+                        : "No usage found in last 30 days"}
+                    </div>
                   )}
-                  <button
-                    onClick={() => handleDelete(conn.id, conn.displayName || p.label)}
-                    disabled={!!isDeleting}
-                    className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs"
-                    style={{ color: "#ef4444" }}
-                  >
-                    {isDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                    Remove
-                  </button>
-                </div>
+                </>
               ) : (
                 <button
                   onClick={() => openForm(p.type)}

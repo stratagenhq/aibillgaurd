@@ -77,7 +77,22 @@ export default async function InsightsPage() {
           className="rounded-xl p-10 text-center"
           style={{ background: "var(--bg2)", border: "1px solid var(--border)" }}
         >
-          {userProviders.length > 0 ? (
+          {userProviders.some((p) => p.lastSyncedAt != null) ? (
+            <>
+              <p className="text-sm mb-1" style={{ color: "var(--text)" }}>Synced recently — no usage found</p>
+              <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+                No billed API usage was found in your account for the last 30 days.
+                Make sure your API key has actual calls on it.
+              </p>
+              <Link
+                href="/connections"
+                className="inline-flex items-center px-4 py-2 rounded-lg text-xs font-medium"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                Check connections →
+              </Link>
+            </>
+          ) : userProviders.length > 0 ? (
             <>
               <p className="text-sm mb-1" style={{ color: "var(--text)" }}>No usage data yet</p>
               <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>

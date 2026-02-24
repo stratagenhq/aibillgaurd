@@ -48,7 +48,7 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "sk-ant-...",
     docsUrl: "https://console.anthropic.com/settings/keys",
-    syncSupported: true,
+    syncSupported: false,
   },
   groq: {
     label: "Groq",
