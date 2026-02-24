@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ALL_PROVIDERS, PROVIDER_META } from "@/lib/providers";
 import type { ProviderType } from "@/lib/providers";
-import { Eye, EyeOff, Loader2, RefreshCw, Trash2, X, CheckCircle, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, Loader2, RefreshCw, Trash2, X, CheckCircle, ExternalLink, ChevronDown, Copy, Check } from "lucide-react";
 import { formatCurrency, formatRelativeTime } from "@/lib/utils";
 
 interface ConnectedProvider {
@@ -15,6 +15,7 @@ interface ConnectedProvider {
   lastSyncedAt: Date | string | null;
   monthCost: number;
   syncSupported: boolean;
+  ingestKey: string;
 }
 
 interface ProviderGridProps {
@@ -49,6 +50,9 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<Record<string, { count: number; error?: string } | null>>({});
+  const [sdkOpen, setSdkOpen] = useState<string | null>(null);
+  const [sdkLang, setSdkLang] = useState<"python" | "ts">("python");
+  const [copied, setCopied] = useState<string | null>(null);
 
   const connectedMap = Object.fromEntries(connected.map((p) => [p.providerType, p]));
   const selectedMeta = selected ? PROVIDER_META[selected] : null;
@@ -275,6 +279,102 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
                         : syncResult[conn.id]!.count > 0
                         ? `Synced ${syncResult[conn.id]!.count} records ✓`
                         : "No usage found in last 30 days"}
+                    </div>
+                  )}
+
+                  {/* SDK Setup toggle */}
+                  <button
+                    onClick={() => setSdkOpen(sdkOpen === conn.id ? null : conn.id)}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors"
+                    style={{ background: "var(--bg3)", color: "var(--muted)", border: "1px solid var(--border)" }}
+                  >
+                    <span>Track live usage via SDK</span>
+                    <ChevronDown
+                      size={12}
+                      style={{
+                        transform: sdkOpen === conn.id ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform 0.15s",
+                      }}
+                    />
+                  </button>
+
+                  {sdkOpen === conn.id && (
+                    <div
+                      className="flex flex-col gap-3 p-3 rounded-xl"
+                      style={{ background: "var(--bg3)", border: "1px solid var(--border)" }}
+                    >
+                      {/* Ingest key row */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs" style={{ color: "var(--muted)" }}>Ingest key</span>
+                        <div className="flex items-center gap-2">
+                          <code
+                            className="flex-1 text-xs px-2 py-1.5 rounded-lg font-mono truncate"
+                            style={{ background: "var(--bg2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                          >
+                            {conn.ingestKey}
+                          </code>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(conn.ingestKey);
+                              setCopied(conn.id + "-key");
+                              setTimeout(() => setCopied(null), 2000);
+                            }}
+                            className="shrink-0 p-1.5 rounded-lg transition-colors"
+                            style={{ background: "var(--bg2)", color: copied === conn.id + "-key" ? "#22c55e" : "var(--muted)" }}
+                            title="Copy ingest key"
+                          >
+                            {copied === conn.id + "-key" ? <Check size={12} /> : <Copy size={12} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Language tabs */}
+                      <div className="flex gap-1">
+                        {(["python", "ts"] as const).map((lang) => (
+                          <button
+                            key={lang}
+                            onClick={() => setSdkLang(lang)}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                            style={{
+                              background: sdkLang === lang ? "var(--accent)" : "var(--bg2)",
+                              color: sdkLang === lang ? "#fff" : "var(--muted)",
+                            }}
+                          >
+                            {lang === "python" ? "Python" : "TypeScript"}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Code snippet */}
+                      <div className="relative">
+                        <pre
+                          className="text-xs p-3 rounded-lg overflow-x-auto font-mono leading-relaxed"
+                          style={{ background: "var(--bg2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                        >
+                          {sdkLang === "python"
+                            ? `pip install aibillguard\n\nfrom aibillguard import wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}\nclient = wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}(${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), key="${conn.ingestKey}")`
+                            : `npm install aibillguard\n\nimport { wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} } from "aibillguard";\nconst client = wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(new ${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), { key: "${conn.ingestKey}" });`}
+                        </pre>
+                        <button
+                          onClick={() => {
+                            const snippet = sdkLang === "python"
+                              ? `pip install aibillguard\n\nfrom aibillguard import wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}\nclient = wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}(${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), key="${conn.ingestKey}")`
+                              : `npm install aibillguard\n\nimport { wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} } from "aibillguard";\nconst client = wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(new ${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), { key: "${conn.ingestKey}" });`;
+                            navigator.clipboard.writeText(snippet);
+                            setCopied(conn.id + "-snippet");
+                            setTimeout(() => setCopied(null), 2000);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 rounded-md transition-colors"
+                          style={{ background: "var(--bg3)", color: copied === conn.id + "-snippet" ? "#22c55e" : "var(--muted)" }}
+                          title="Copy snippet"
+                        >
+                          {copied === conn.id + "-snippet" ? <Check size={11} /> : <Copy size={11} />}
+                        </button>
+                      </div>
+
+                      <p className="text-xs" style={{ color: "var(--muted)" }}>
+                        Every API call now appears in your dashboard in real time. No prompts or content are sent — only token counts.
+                      </p>
                     </div>
                   )}
                 </>

@@ -42,6 +42,7 @@ export default async function ConnectionsPage() {
       lastSyncedAt: p.lastSyncedAt,
       monthCost,
       syncSupported: meta?.syncSupported ?? false,
+      ingestKey: p.ingestKey ?? "",
     };
   });
 

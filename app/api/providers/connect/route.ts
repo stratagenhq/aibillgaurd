@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { users, providers } from "@/lib/db/schema";
 import { encryptApiKey } from "@/lib/encryption";
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
 
     // Encrypt and store the API key
     const { encrypted, iv } = encryptApiKey(apiKey.trim());
+    const ingestKey = "abg-" + randomBytes(24).toString("hex");
 
     const [provider] = await db
       .insert(providers)
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
         displayName: displayName?.trim() || null,
         encryptedApiKey: encrypted,
         keyIv: iv,
+        ingestKey,
         status: "active",
       })
       .returning();
@@ -71,7 +74,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ provider });
+    return NextResponse.json({ provider: { ...provider, ingestKey } });
   } catch (err) {
     console.error("Connect provider error:", err);
     return NextResponse.json({ error: "Failed to connect provider" }, { status: 500 });

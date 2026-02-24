@@ -93,6 +93,7 @@ export const providers = pgTable(
     displayName: text("display_name"),
     encryptedApiKey: text("encrypted_api_key"), // AES-256-GCM ciphertext
     keyIv: text("key_iv"),                       // IV for decryption
+    ingestKey: text("ingest_key").unique(),
     status: providerStatusEnum("status").notNull().default("active"),
     lastSyncedAt: timestamp("last_synced_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
