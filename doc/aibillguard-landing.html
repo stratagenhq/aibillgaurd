@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Bill Guard – Stop Getting Surprised by Your AI Bill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0b;
+    --bg2: #111114;
+    --bg3: #18181d;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.14);
+    --text: #f0eff4;
+    --muted: #7c7b8a;
+    --accent: #e8431a;
+    --accent2: #f5a623;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #60a5fa;
+    --card: rgba(255,255,255,0.03);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,11,0.85);
+    backdrop-filter: blur(20px);
+  }
+
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #d63916;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(232,67,26,0.3);
+  }
+
+  .btn-ghost {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--border-bright);
+  }
+
+  .btn-large {
+    padding: 14px 28px;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(232,67,26,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-glow-2 {
+    position: absolute;
+    top: 60%;
+    left: 30%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(ellipse, rgba(245,166,35,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(232,67,26,0.1);
+    border: 1px solid rgba(232,67,26,0.25);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 28px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(46px, 7vw, 88px);
+    line-height: 1.05;
+    letter-spacing: -2px;
+    color: var(--text);
+    max-width: 900px;
+    margin: 0 auto 24px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--muted);
+    max-width: 560px;
+    margin: 0 auto 48px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 64px;
+  }
+
+  .hero-proof {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    color: var(--muted);
+    font-size: 13px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .proof-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .proof-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+
+  /* ── DASHBOARD PREVIEW ── */
+  .dashboard-preview {
+    margin: 0 auto;
+    max-width: 1100px;
+    padding: 0 24px;
+    position: relative;
+  }
+
+  .preview-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  .preview-bar {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot-red { width: 12px; height: 12px; background: #ef4444; border-radius: 50%; }
+  .dot-yellow { width: 12px; height: 12px; background: #f59e0b; border-radius: 50%; }
+  .dot-green { width: 12px; height: 12px; background: #22c55e; border-radius: 50%; }
+
+  .preview-url {
+    flex: 1;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    padding: 4px 12px;
+  }
+
+  .preview-content {
+    padding: 24px;
+  }
+
+  /* Mini Dashboard UI */
+  .mini-dash {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stat-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-change {
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .up { color: var(--red); }
+  .down { color: var(--green); }
+
+  .chart-area {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    height: 140px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .chart-bar {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .mini-table {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 12px;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    gap: 16px;
+  }
+
+  .table-row:last-child { border-bottom: none; }
+
+  .table-header .table-row {
+    background: rgba(255,255,255,0.02);
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .model-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .provider-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .cost-bar-wrap {
+    width: 80px;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .cost-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  .waste-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .waste-high { background: rgba(239,68,68,0.15); color: var(--red); }
+  .waste-med { background: rgba(245,166,35,0.15); color: var(--accent2); }
+  .waste-low { background: rgba(34,197,94,0.15); color: var(--green); }
+
+  .optimize-banner {
+    background: rgba(232,67,26,0.08);
+    border: 1px solid rgba(232,67,26,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+
+  .optimize-text {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .optimize-text span { color: var(--accent); font-weight: 600; }
+
+  .optimize-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+  }
+
+  /* ── PAIN POINTS ── */
+  section { padding: 100px 24px; }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .pain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-width: 1100px;
+    margin: 60px auto 0;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .pain-card {
+    padding: 40px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    transition: background 0.3s;
+  }
+
+  .pain-card:hover { background: rgba(255,255,255,0.02); }
+  .pain-card:nth-child(2n) { border-right: none; }
+  .pain-card:nth-last-child(-n+2) { border-bottom: none; }
+
+  .pain-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .pain-card h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+  }
+
+  .pain-card p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-top: 60px;
+    text-align: left;
+  }
+
+  .step {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+
+  .step:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-bright);
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,67,26,0.06) 0%, transparent 70%);
+  }
+
+  .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .step h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+  }
+
+  .step p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ── PROVIDERS ── */
+  .providers-section { text-align: center; }
+
+  .providers-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .provider-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+
+  .provider-chip:hover {
+    border-color: var(--border-bright);
+    background: var(--bg3);
+  }
+
+  .provider-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* ── PRICING ── */
+  .pricing-section { text-align: center; }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    max-width: 900px;
+    margin: 60px auto 0;
+    text-align: left;
+  }
+
+  .pricing-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .pricing-card:hover { border-color: var(--border-bright); }
+
+  .pricing-card.featured {
+    border-color: var(--accent);
+    background: rgba(232,67,26,0.04);
+  }
+
+  .featured-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 100px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .plan-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .plan-price {
+    font-family: 'Instrument Serif', serif;
+    font-size: 48px;
+    letter-spacing: -2px;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+
+  .plan-period {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .plan-features {
+    list-style: none;
+    margin-bottom: 28px;
+  }
+
+  .plan-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .plan-features li::before {
+    content: '✓';
+    color: var(--green);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .plan-features li.dimmed::before {
+    content: '–';
+    color: var(--border-bright);
+  }
+
+  .plan-features li.dimmed {
+    opacity: 0.4;
+  }
+
+  .w-full { width: 100%; justify-content: center; }
+
+  /* ── WAITLIST ── */
+  .waitlist-section {
+    text-align: center;
+    padding: 100px 24px;
+  }
+
+  .waitlist-box {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .waitlist-box h2 { margin-bottom: 12px; }
+
+  .waitlist-box p {
+    color: var(--muted);
+    margin-bottom: 36px;
+    font-size: 16px;
+  }
+
+  .waitlist-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .waitlist-input {
+    flex: 1;
+    padding: 14px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .waitlist-input:focus {
+    border-color: rgba(232,67,26,0.4);
+    box-shadow: 0 0 0 3px rgba(232,67,26,0.08);
+  }
+
+  .waitlist-input::placeholder { color: var(--muted); }
+
+  .waitlist-note {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .waitlist-success {
+    display: none;
+    background: rgba(34,197,94,0.08);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 10px;
+    padding: 20px;
+    color: var(--green);
+    font-size: 15px;
+  }
+
+  /* ── SOCIAL PROOF ── */
+  .testimonials {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .testimonial {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+
+  .testimonial:hover { border-color: var(--border-bright); }
+
+  .testimonial-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .author-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .author-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .author-role {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1100px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+  }
+
+  .footer-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  .footer-copy {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in {
+    animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+  .delay-4 { animation-delay: 0.4s; }
+  .delay-5 { animation-delay: 0.5s; }
+
+  /* ── TICKER ── */
+  .ticker-wrap {
+    overflow: hidden;
+    background: rgba(239,68,68,0.05);
+    border-top: 1px solid rgba(239,68,68,0.15);
+    border-bottom: 1px solid rgba(239,68,68,0.15);
+    padding: 12px 0;
+    margin: -40px 0 60px;
+  }
+
+  .ticker {
+    display: flex;
+    animation: ticker 30s linear infinite;
+    width: max-content;
+  }
+
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 40px;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  .ticker-item span { color: var(--red); font-weight: 600; }
+
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    nav { padding: 12px 16px; }
+    .nav-links { display: none; }
+    .pain-grid { grid-template-columns: 1fr; }
+    .pain-card:nth-child(2n) { border-right: 1px solid var(--border); }
+    .steps { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .mini-dash { grid-template-columns: 1fr 1fr; }
+    .waitlist-form { flex-direction: column; }
+    .hero h1 { letter-spacing: -1px; }
+    footer { flex-direction: column; align-items: flex-start; }
+  }
+
+  @media (max-width: 640px) {
+    .mini-dash { grid-template-columns: 1fr; }
+    .preview-content { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#">
+    <div class="logo-dot"></div>
+    AI Bill Guard
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#waitlist">Early access</a></li>
+  </ul>
+  <div style="display:flex;gap:8px">
+    <a href="#waitlist" class="btn btn-primary" style="padding:8px 16px;font-size:13px">Get early access →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+
+  <div class="badge fade-in">🔥 For AI founders & indie hackers</div>
+
+  <h1 class="fade-in delay-1">
+    Stop getting surprised<br />by your <em>AI bill</em>
+  </h1>
+
+  <p class="hero-sub fade-in delay-2">
+    Connect once. See exactly where every dollar goes across OpenAI, Anthropic, Groq, Gemini, and 10+ more. Get AI-powered savings suggestions. Never get a $4k shock again.
+  </p>
+
+  <div class="hero-actions fade-in delay-3">
+    <a href="#waitlist" class="btn btn-primary btn-large">Join the waitlist — free →</a>
+    <a href="#demo" class="btn btn-ghost btn-large">▶ See demo</a>
+  </div>
+
+  <div class="hero-proof fade-in delay-4">
+    <div class="proof-item">
+      <div class="proof-dot"></div>
+      Zero prompt data stored
+    </div>
+    <div class="proof-item">
+      <div class="proof-dot"></div>
+      Works in 2 minutes
+    </div>
+    <div class="proof-item">
+      <div class="proof-dot"></div>
+      Free forever plan
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <div class="ticker-item">😱 "Woke up to a <span>$3,847</span> OpenAI bill from a runaway loop"</div>
+    <div class="ticker-item">💸 "Didn't realize we were using <span>GPT-4</span> for simple summarization"</div>
+    <div class="ticker-item">🔥 "Our costs doubled MoM and we had <span>no idea why</span>"</div>
+    <div class="ticker-item">😰 "3 team members all <span>using the same API key</span> — no attribution"</div>
+    <div class="ticker-item">🚨 "Got a <span>$900 Midjourney bill</span> from a script I forgot about"</div>
+    <div class="ticker-item">🤯 "Switched to Claude but forgot to <span>remove the GPT-4 calls</span>"</div>
+    <!-- Duplicate for seamless loop -->
+    <div class="ticker-item">😱 "Woke up to a <span>$3,847</span> OpenAI bill from a runaway loop"</div>
+    <div class="ticker-item">💸 "Didn't realize we were using <span>GPT-4</span> for simple summarization"</div>
+    <div class="ticker-item">🔥 "Our costs doubled MoM and we had <span>no idea why</span>"</div>
+    <div class="ticker-item">😰 "3 team members all <span>using the same API key</span> — no attribution"</div>
+    <div class="ticker-item">🚨 "Got a <span>$900 Midjourney bill</span> from a script I forgot about"</div>
+    <div class="ticker-item">🤯 "Switched to Claude but forgot to <span>remove the GPT-4 calls</span>"</div>
+  </div>
+</div>
+
+<!-- DASHBOARD PREVIEW -->
+<div class="dashboard-preview fade-in delay-5" id="demo">
+  <div class="preview-wrap">
+    <div class="preview-bar">
+      <div class="dot-red"></div>
+      <div class="dot-yellow"></div>
+      <div class="dot-green"></div>
+      <div class="preview-url">app.aibillguard.ai/dashboard</div>
+    </div>
+    <div class="preview-content">
+
+      <div class="mini-dash">
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="cost-anim">$0</div>
+          <div class="stat-change up">↑ 23% vs last month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Projected</div>
+          <div class="stat-value">$4,920</div>
+          <div class="stat-change up">↑ on track to overshoot</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tokens Used</div>
+          <div class="stat-value">84.2M</div>
+          <div class="stat-change" style="color:var(--muted)">across 6 providers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Waste Score</div>
+          <div class="stat-value" style="color:var(--accent)">67</div>
+          <div class="stat-change up">High – action needed</div>
+        </div>
+      </div>
+
+      <!-- Mini chart -->
+      <div class="chart-area" id="chart">
+        <!-- Bars injected by JS -->
+      </div>
+
+      <!-- Provider table -->
+      <div class="mini-table">
+        <div class="table-header">
+          <div class="table-row">
+            <div>Model</div>
+            <div>Cost</div>
+            <div>Volume</div>
+            <div>Waste</div>
+          </div>
+        </div>
+        <div class="table-row">
+          <div class="model-name">
+            <div class="provider-dot" style="background:#10a37f"></div>
+            GPT-4o
+          </div>
+          <div style="color:var(--text);font-weight:600">$1,840</div>
+          <div>
+            <div class="cost-bar-wrap"><div class="cost-bar-fill" style="width:90%"></div></div>
+          </div>
+          <div><span class="waste-badge waste-high">HIGH</span></div>
+        </div>
+        <div class="table-row">
+          <div class="model-name">
+            <div class="provider-dot" style="background:#d97706"></div>
+            Claude Opus
+          </div>
+          <div style="color:var(--text);font-weight:600">$940</div>
+          <div>
+            <div class="cost-bar-wrap"><div class="cost-bar-fill" style="width:46%;background:#d97706"></div></div>
+          </div>
+          <div><span class="waste-badge waste-med">MED</span></div>
+        </div>
+        <div class="table-row">
+          <div class="model-name">
+            <div class="provider-dot" style="background:#f59e0b"></div>
+            Groq Llama-70B
+          </div>
+          <div style="color:var(--text);font-weight:600">$89</div>
+          <div>
+            <div class="cost-bar-wrap"><div class="cost-bar-fill" style="width:15%;background:#22c55e"></div></div>
+          </div>
+          <div><span class="waste-badge waste-low">LOW</span></div>
+        </div>
+      </div>
+
+      <!-- Optimize banner -->
+      <div class="optimize-banner">
+        <div class="optimize-text">
+          💡 AI found <span>3 optimization opportunities</span> — estimated savings <span>$680/mo</span>
+        </div>
+        <button class="optimize-btn" onclick="showOptimize()">Optimize this month →</button>
+      </div>
+
+      <!-- Optimize popup (hidden) -->
+      <div id="optimize-result" style="display:none; margin-top:12px; background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:20px;">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.06em">AI Analysis · Generated just now</div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:rgba(34,197,94,0.1);color:var(--green);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">QUICK WIN · -$420/mo</span>
+            <span style="font-size:14px;font-weight:600">Swap GPT-4o → GPT-4o-mini for summarization</span>
+          </div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Your "Customer Summary" feature uses GPT-4o but the task complexity scores low (avg 340 tokens, high repetition). GPT-4o-mini is 15× cheaper with ~94% quality parity for this use case.</p>
+          <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#a78bfa">
+            // Before: model: "gpt-4o"<br>
+            // After:&nbsp; model: "gpt-4o-mini"  // saves ~$14/day
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="background:rgba(245,166,35,0.1);color:var(--accent2);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">MEDIUM · -$260/mo</span>
+            <span style="font-size:14px;font-weight:600">Enable semantic caching on FAQ responses</span>
+          </div>
+          <p style="font-size:13px;color:var(--muted)">1,240 near-duplicate queries detected in the last 30 days. A simple Redis semantic cache with cosine similarity ≥0.92 threshold would eliminate ~31% of your API calls.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PAIN POINTS -->
+<section id="pain" style="max-width:1100px;margin:0 auto;padding:120px 24px 80px">
+  <span class="section-label">The problem</span>
+  <h2>Your AI costs are a<br />black box. Until now.</h2>
+
+  <div class="pain-grid">
+    <div class="pain-card">
+      <span class="pain-icon">💸</span>
+      <h3>Fragmented across 8+ tools</h3>
+      <p>OpenAI, Anthropic, Groq, Midjourney, ElevenLabs — each with their own dashboard, billing cycle, and metric. Nobody sees the full picture.</p>
+    </div>
+    <div class="pain-card">
+      <span class="pain-icon">🕳️</span>
+      <h3>No per-feature attribution</h3>
+      <p>You know you spent $3k last month. But was it the chatbot? The image pipeline? The marketing tool? No idea. Budgets are guesses.</p>
+    </div>
+    <div class="pain-card">
+      <span class="pain-icon">⏰</span>
+      <h3>You find out too late</h3>
+      <p>The invoice hits your card. Not 3 days ago when costs started spiking. By then the damage is done and the month is over.</p>
+    </div>
+    <div class="pain-card">
+      <span class="pain-icon">🧠</span>
+      <h3>You're leaving $$$ on the table</h3>
+      <p>Using GPT-4o for tasks that GPT-4o-mini handles fine. No caching. No prompt compression. Easy wins invisible to busy founders.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="padding:80px 24px">
+  <div class="how-section">
+    <span class="section-label">How it works</span>
+    <h2>Connect once,<br />understand everything</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">Step 01</div>
+        <h3>Connect your providers</h3>
+        <p>Paste your API keys (encrypted AES-256-GCM, never logged) or forward billing emails. Takes 2 minutes. Works with 10+ AI providers.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 02</div>
+        <h3>See your unified dashboard</h3>
+        <p>Every provider. Every model. Every project. One beautiful real-time view. Spend by feature, by team member, by day — crystal clear.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 03</div>
+        <h3>Let AI find your savings</h3>
+        <p>Hit "Optimize This Month." Our AI analyzes your patterns and serves up specific, copy-paste recommendations with estimated dollar savings.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROVIDERS -->
+<section style="padding:60px 24px 100px">
+  <div class="providers-section">
+    <span class="section-label">Integrations</span>
+    <h2 style="font-size:32px">Works with every provider<br />you already use</h2>
+    <div class="providers-grid">
+      <div class="provider-chip"><div class="provider-icon">🟢</div> OpenAI</div>
+      <div class="provider-chip"><div class="provider-icon">🔶</div> Anthropic</div>
+      <div class="provider-chip"><div class="provider-icon">⚡</div> Groq</div>
+      <div class="provider-chip"><div class="provider-icon">🔵</div> Google Gemini</div>
+      <div class="provider-chip"><div class="provider-icon">☁️</div> Azure OpenAI</div>
+      <div class="provider-chip"><div class="provider-icon">🔥</div> Fireworks AI</div>
+      <div class="provider-chip"><div class="provider-icon">🤝</div> Together AI</div>
+      <div class="provider-chip"><div class="provider-icon">🌀</div> Mistral</div>
+      <div class="provider-chip"><div class="provider-icon">🎨</div> Midjourney</div>
+      <div class="provider-chip"><div class="provider-icon">🎙️</div> ElevenLabs</div>
+      <div class="provider-chip"><div class="provider-icon">🔍</div> Perplexity</div>
+      <div class="provider-chip" style="border-style:dashed;color:var(--muted)">+ more coming</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="padding:60px 24px">
+  <div class="testimonials">
+    <span class="section-label">Early feedback</span>
+    <h2>Founders who've been there</h2>
+    <div class="testimonials-grid">
+      <div class="testimonial">
+        <div class="testimonial-text">"I had NO idea my summarization feature was using GPT-4o instead of mini. AI Bill Guard flagged it in the first week and saved us $400/month instantly."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar">MK</div>
+          <div>
+            <div class="author-name">Marcus K.</div>
+            <div class="author-role">Indie hacker, AI writing tool</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="testimonial-text">"We have 5 devs using 3 providers. Before this, our billing reconciliation took 4 hours on the last day of every month. Now it's a 5 second glance."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar">SL</div>
+          <div>
+            <div class="author-name">Sarah L.</div>
+            <div class="author-role">CTO, 8-person AI agency</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="testimonial-text">"The anomaly alert caught a runaway loop at 11pm on a Saturday. Saved me from waking up to a $2k surprise. Paid for itself in the first 3 days."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar">RP</div>
+          <div>
+            <div class="author-name">Raj P.</div>
+            <div class="author-role">Solo founder, SaaS startup</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" style="padding:80px 24px">
+  <div class="pricing-section">
+    <span class="section-label">Pricing</span>
+    <h2>Simple, honest pricing.<br />Profitable to us, saving to you.</h2>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0</div>
+        <div class="plan-period">forever</div>
+        <ul class="plan-features">
+          <li>2 providers connected</li>
+          <li>50k tokens tracked/month</li>
+          <li>Basic dashboard</li>
+          <li>7-day history</li>
+          <li class="dimmed">AI optimization</li>
+          <li class="dimmed">Alerts</li>
+          <li class="dimmed">Team seats</li>
+        </ul>
+        <a href="#waitlist" class="btn btn-ghost w-full">Get started</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$29</div>
+        <div class="plan-period">per month</div>
+        <ul class="plan-features">
+          <li>Unlimited providers</li>
+          <li>Unlimited tokens tracked</li>
+          <li>Full AI optimization</li>
+          <li>Anomaly alerts (Slack + email)</li>
+          <li>3 team seats</li>
+          <li>90-day history + forecasts</li>
+          <li>CSV/PDF export</li>
+        </ul>
+        <a href="#waitlist" class="btn btn-primary w-full">Start free trial</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="plan-name">Business</div>
+        <div class="plan-price">$99</div>
+        <div class="plan-period">per month</div>
+        <ul class="plan-features">
+          <li>Everything in Pro</li>
+          <li>Unlimited team seats</li>
+          <li>SSO / SAML</li>
+          <li>Priority support</li>
+          <li>Custom alert rules</li>
+          <li>API access</li>
+          <li>SOC2-ready exports</li>
+        </ul>
+        <a href="#waitlist" class="btn btn-ghost w-full">Contact us</a>
+      </div>
+    </div>
+
+    <p style="margin-top:24px;color:var(--muted);font-size:13px">
+      All plans include a 14-day free trial. No credit card required to start.
+    </p>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section id="waitlist" style="padding:100px 24px">
+  <div class="waitlist-box">
+    <span class="section-label">Early access</span>
+    <h2>Get in before we<br />open the gates</h2>
+    <p>Join 340+ founders on the waitlist. First 100 get 3 months of Pro free.</p>
+
+    <div class="waitlist-form" id="waitlist-form">
+      <input
+        type="email"
+        class="waitlist-input"
+        id="email-input"
+        placeholder="you@startup.com"
+        autocomplete="email"
+      />
+      <button class="btn btn-primary btn-large" onclick="submitWaitlist()">
+        Get early access →
+      </button>
+    </div>
+
+    <div class="waitlist-success" id="waitlist-success">
+      🎉 You're on the list! We'll email you when early access opens.
+    </div>
+
+    <p class="waitlist-note">No spam. Unsubscribe any time. We hate bad emails too.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a class="logo" href="#" style="font-size:18px">
+    <div class="logo-dot"></div>
+    AI Bill Guard
+  </a>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">Security</a></li>
+    <li><a href="mailto:hi@aibillguard.ai">hi@aibillguard.ai</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 AI Bill Guard. Built for AI builders.</div>
+</footer>
+
+<script>
+// Animate cost counter
+function animateCounter(el, target, duration = 1500) {
+  const start = performance.now();
+  const update = (now) => {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = '$' + Math.round(ease * target).toLocaleString();
+    if (t < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+// Generate chart bars
+function buildChart() {
+  const chart = document.getElementById('chart');
+  const data = [580, 920, 840, 1100, 1380, 1240, 1640, 1480, 1820, 2040, 1960, 2280, 2480, 2180];
+  const max = Math.max(...data);
+
+  data.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    const pct = (v / max) * 100;
+    const recent = i >= data.length - 4;
+    bar.style.background = recent
+      ? `linear-gradient(to top, var(--accent), rgba(232,67,26,0.4))`
+      : `rgba(255,255,255,0.08)`;
+    bar.style.height = `${pct}%`;
+    chart.appendChild(bar);
+  });
+
+  // Label
+  const label = document.createElement('div');
+  label.style.cssText = 'position:absolute;bottom:10px;right:12px;font-size:10px;color:var(--muted);font-family:JetBrains Mono,monospace';
+  label.textContent = '14-day spend trend';
+  chart.appendChild(label);
+}
+
+// Intersection observer for counter
+const costEl = document.getElementById('cost-anim');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      animateCounter(costEl, 3284);
+      observer.disconnect();
+    }
+  });
+});
+observer.observe(costEl);
+
+// Optimize popup
+function showOptimize() {
+  const result = document.getElementById('optimize-result');
+  result.style.display = result.style.display === 'none' ? 'block' : 'none';
+}
+
+// Waitlist submit
+function submitWaitlist() {
+  const email = document.getElementById('email-input').value;
+  if (!email || !email.includes('@')) {
+    document.getElementById('email-input').style.borderColor = 'rgba(239,68,68,0.4)';
+    return;
+  }
+  document.getElementById('waitlist-form').style.display = 'none';
+  document.getElementById('waitlist-success').style.display = 'block';
+  // In production: POST to /api/waitlist
+  console.log('Waitlist signup:', email);
+}
+
+// Init
+buildChart();
+</script>
+</body>
+</html>
