@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // One-time migration endpoint — DELETE THIS FILE after running
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("x-migrate-secret");
-  if (authHeader !== process.env.MIGRATION_SECRET) {
+  if (authHeader !== process.env.MIGRATION_SECRET?.trim()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
