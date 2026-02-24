@@ -282,13 +282,13 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
                     </div>
                   )}
 
-                  {/* SDK Setup toggle */}
+                  {/* Track live toggle */}
                   <button
                     onClick={() => setSdkOpen(sdkOpen === conn.id ? null : conn.id)}
                     className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors"
                     style={{ background: "var(--bg3)", color: "var(--muted)", border: "1px solid var(--border)" }}
                   >
-                    <span>Track live usage via SDK</span>
+                    <span>Track live</span>
                     <ChevronDown
                       size={12}
                       style={{
@@ -300,12 +300,101 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
 
                   {sdkOpen === conn.id && (
                     <div
-                      className="flex flex-col gap-3 p-3 rounded-xl"
+                      className="flex flex-col gap-4 p-3 rounded-xl"
                       style={{ background: "var(--bg3)", border: "1px solid var(--border)" }}
                     >
+                      {/* Header */}
+                      <div>
+                        <p className="text-xs font-medium mb-0.5" style={{ color: "var(--text)" }}>
+                          See every API call in real time
+                        </p>
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                          Add 2 lines to your existing code. Your requests go directly to {conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} as before — the SDK only reads the token counts already in each response and sends them here. No prompts, no content, no routing through our servers.
+                        </p>
+                      </div>
+
+                      {/* Step 1 — Install */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>
+                          Step 1 — Install
+                        </span>
+                        {/* Language tabs */}
+                        <div className="flex gap-1 mb-1">
+                          {(["python", "ts"] as const).map((lang) => (
+                            <button
+                              key={lang}
+                              onClick={() => setSdkLang(lang)}
+                              className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                              style={{
+                                background: sdkLang === lang ? "var(--accent)" : "var(--bg2)",
+                                color: sdkLang === lang ? "#fff" : "var(--muted)",
+                              }}
+                            >
+                              {lang === "python" ? "Python" : "TypeScript"}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="relative">
+                          <pre
+                            className="text-xs px-3 py-2 rounded-lg font-mono"
+                            style={{ background: "var(--bg2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                          >
+                            {sdkLang === "python" ? "pip install aibillguard" : "npm install aibillguard"}
+                          </pre>
+                        </div>
+                      </div>
+
+                      {/* Step 2 — Wrap your client */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>
+                          Step 2 — Wrap your existing client
+                        </span>
+                        {(() => {
+                          const isAnthropic = conn.providerType === "anthropic";
+                          const snippet = sdkLang === "python"
+                            ? `from aibillguard import wrap_${isAnthropic ? "anthropic" : "openai"}\n\n# wrap your existing client — one line\nclient = wrap_${isAnthropic ? "anthropic" : "openai"}(\n    ${isAnthropic ? "Anthropic" : "OpenAI"}(api_key="..."),\n    key="${conn.ingestKey}"\n)`
+                            : `import { wrap${isAnthropic ? "Anthropic" : "OpenAI"} } from "aibillguard";\n\n// wrap your existing client — one line\nconst client = wrap${isAnthropic ? "Anthropic" : "OpenAI"}(\n  new ${isAnthropic ? "Anthropic" : "OpenAI"}({ apiKey: "..." }),\n  { key: "${conn.ingestKey}" }\n);`;
+                          return (
+                            <div className="relative">
+                              <pre
+                                className="text-xs p-3 rounded-lg overflow-x-auto font-mono leading-relaxed"
+                                style={{ background: "var(--bg2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                              >
+                                {snippet}
+                              </pre>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(snippet);
+                                  setCopied(conn.id + "-snippet");
+                                  setTimeout(() => setCopied(null), 2000);
+                                }}
+                                className="absolute top-2 right-2 p-1.5 rounded-md transition-colors"
+                                style={{ background: "var(--bg3)", color: copied === conn.id + "-snippet" ? "#22c55e" : "var(--muted)" }}
+                                title="Copy snippet"
+                              >
+                                {copied === conn.id + "-snippet" ? <Check size={11} /> : <Copy size={11} />}
+                              </button>
+                            </div>
+                          );
+                        })()}
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>
+                          Use <code className="font-mono" style={{ color: "var(--text)" }}>{conn.ingestKey.slice(0, 12)}…</code> as your ingest key. Keep using your {conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} API key as normal.
+                        </p>
+                      </div>
+
+                      {/* Step 3 — Done */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>
+                          Step 3 — That&apos;s it
+                        </span>
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                          Every API call now increments your dashboard automatically. Use your client exactly as before — <code className="font-mono" style={{ color: "var(--text)" }}>{conn.providerType === "anthropic" ? "client.messages.create(...)" : "client.chat.completions.create(...)"}</code> works unchanged. Token counts appear within seconds.
+                        </p>
+                      </div>
+
                       {/* Ingest key row */}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs" style={{ color: "var(--muted)" }}>Ingest key</span>
+                      <div className="flex flex-col gap-1" style={{ borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
+                        <span className="text-xs" style={{ color: "var(--muted)" }}>Your ingest key</span>
                         <div className="flex items-center gap-2">
                           <code
                             className="flex-1 text-xs px-2 py-1.5 rounded-lg font-mono truncate"
@@ -326,55 +415,10 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
                             {copied === conn.id + "-key" ? <Check size={12} /> : <Copy size={12} />}
                           </button>
                         </div>
+                        <p className="text-xs" style={{ color: "var(--muted)", opacity: 0.7 }}>
+                          This key identifies your {conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} connection. Treat it like a password — do not commit it to source control.
+                        </p>
                       </div>
-
-                      {/* Language tabs */}
-                      <div className="flex gap-1">
-                        {(["python", "ts"] as const).map((lang) => (
-                          <button
-                            key={lang}
-                            onClick={() => setSdkLang(lang)}
-                            className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-                            style={{
-                              background: sdkLang === lang ? "var(--accent)" : "var(--bg2)",
-                              color: sdkLang === lang ? "#fff" : "var(--muted)",
-                            }}
-                          >
-                            {lang === "python" ? "Python" : "TypeScript"}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Code snippet */}
-                      <div className="relative">
-                        <pre
-                          className="text-xs p-3 rounded-lg overflow-x-auto font-mono leading-relaxed"
-                          style={{ background: "var(--bg2)", color: "var(--text)", border: "1px solid var(--border)" }}
-                        >
-                          {sdkLang === "python"
-                            ? `pip install aibillguard\n\nfrom aibillguard import wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}\nclient = wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}(${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), key="${conn.ingestKey}")`
-                            : `npm install aibillguard\n\nimport { wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} } from "aibillguard";\nconst client = wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(new ${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), { key: "${conn.ingestKey}" });`}
-                        </pre>
-                        <button
-                          onClick={() => {
-                            const snippet = sdkLang === "python"
-                              ? `pip install aibillguard\n\nfrom aibillguard import wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}\nclient = wrap_${conn.providerType === "anthropic" ? "anthropic" : "openai"}(${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), key="${conn.ingestKey}")`
-                              : `npm install aibillguard\n\nimport { wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"} } from "aibillguard";\nconst client = wrap${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(new ${conn.providerType === "anthropic" ? "Anthropic" : "OpenAI"}(...), { key: "${conn.ingestKey}" });`;
-                            navigator.clipboard.writeText(snippet);
-                            setCopied(conn.id + "-snippet");
-                            setTimeout(() => setCopied(null), 2000);
-                          }}
-                          className="absolute top-2 right-2 p-1.5 rounded-md transition-colors"
-                          style={{ background: "var(--bg3)", color: copied === conn.id + "-snippet" ? "#22c55e" : "var(--muted)" }}
-                          title="Copy snippet"
-                        >
-                          {copied === conn.id + "-snippet" ? <Check size={11} /> : <Copy size={11} />}
-                        </button>
-                      </div>
-
-                      <p className="text-xs" style={{ color: "var(--muted)" }}>
-                        Every API call now appears in your dashboard in real time. No prompts or content are sent — only token counts.
-                      </p>
                     </div>
                   )}
                 </>
