@@ -5,6 +5,15 @@ import { db } from "@/lib/db";
 import { providers, usageSnapshots, users } from "@/lib/db/schema";
 import { decryptApiKey } from "@/lib/encryption";
 import { fetchOpenAIUsage } from "@/lib/providers/openai";
+import { fetchAnthropicUsage } from "@/lib/providers/anthropic";
+import type { UsageDay } from "@/lib/providers";
+
+type FetchFn = (apiKey: string, days: number) => Promise<UsageDay[]>;
+
+const PROVIDER_ADAPTERS: Partial<Record<string, FetchFn>> = {
+  openai:    fetchOpenAIUsage,
+  anthropic: fetchAnthropicUsage,
+};
 
 export async function syncProvider(
   providerId: string,
@@ -29,26 +38,24 @@ export async function syncProvider(
   let syncError: string | undefined;
 
   try {
-    let usageDays: Awaited<ReturnType<typeof fetchOpenAIUsage>> = [];
+    let usageDays: UsageDay[] = [];
 
-    if (provider.providerType === "openai") {
-      try {
-        usageDays = await fetchOpenAIUsage(apiKey, 30);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to fetch usage";
-        if (msg.startsWith("PERMISSION_ERROR:")) {
-          syncError = msg.replace("PERMISSION_ERROR: ", "");
-        } else {
-          syncError = msg;
-        }
-      }
-    } else {
+    const adapter = PROVIDER_ADAPTERS[provider.providerType];
+    if (!adapter) {
       // Provider type not yet supported — update timestamp but no data
       await db
         .update(providers)
         .set({ lastSyncedAt: new Date(), updatedAt: new Date() })
         .where(eq(providers.id, providerId));
       return { snapshotsUpserted: 0 };
+    }
+    try {
+      usageDays = await adapter(apiKey, 30);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to fetch usage";
+      syncError = msg.startsWith("PERMISSION_ERROR:")
+        ? msg.replace("PERMISSION_ERROR: ", "")
+        : msg;
     }
 
     // Upsert each day sequentially (avoid connection limit spikes under cron load)
