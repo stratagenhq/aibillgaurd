@@ -77,17 +77,35 @@ export default async function InsightsPage() {
           className="rounded-xl p-10 text-center"
           style={{ background: "var(--bg2)", border: "1px solid var(--border)" }}
         >
-          <p className="text-sm mb-1" style={{ color: "var(--text)" }}>No data yet</p>
-          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
-            Connect and sync a provider to see per-model breakdowns.
-          </p>
-          <Link
-            href="/connections"
-            className="inline-flex items-center px-4 py-2 rounded-lg text-xs font-medium"
-            style={{ background: "var(--accent)", color: "#fff" }}
-          >
-            Connect a provider →
-          </Link>
+          {userProviders.length > 0 ? (
+            <>
+              <p className="text-sm mb-1" style={{ color: "var(--text)" }}>No usage data yet</p>
+              <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+                Your providers are connected. Click Sync on any provider to pull usage data.
+              </p>
+              <Link
+                href="/connections"
+                className="inline-flex items-center px-4 py-2 rounded-lg text-xs font-medium"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                Sync providers →
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-sm mb-1" style={{ color: "var(--text)" }}>No data yet</p>
+              <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+                Connect and sync a provider to see per-model breakdowns.
+              </p>
+              <Link
+                href="/connections"
+                className="inline-flex items-center px-4 py-2 rounded-lg text-xs font-medium"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                Connect a provider →
+              </Link>
+            </>
+          )}
         </div>
       ) : (
         <>

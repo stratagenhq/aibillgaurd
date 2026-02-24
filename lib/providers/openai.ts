@@ -1,15 +1,8 @@
 // OpenAI usage adapter
 // Uses GET /v1/usage?date=YYYY-MM-DD (standard API key, per-day usage)
 
-export interface UsageDay {
-  date: string; // YYYY-MM-DD
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  costUsd: number;
-  requestCount: number;
-}
+import type { UsageDay } from "@/lib/providers";
+export type { UsageDay };
 
 // Pricing per 1M tokens (USD), as of early 2026
 const MODEL_PRICES: Record<string, { input: number; output: number }> = {

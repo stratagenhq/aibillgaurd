@@ -1,10 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { providers, usageSnapshots } from "@/lib/db/schema";
-import { decryptApiKey } from "@/lib/encryption";
-import { fetchOpenAIUsage } from "@/lib/providers/openai";
+import { syncProvider } from "@/lib/sync-engine";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -16,76 +12,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "providerId is required" }, { status: 400 });
     }
 
-    // Fetch provider (verify ownership)
-    const [provider] = await db
-      .select()
-      .from(providers)
-      .where(and(eq(providers.id, providerId), eq(providers.userId, userId)));
+    const result = await syncProvider(providerId, userId);
 
-    if (!provider) {
-      return NextResponse.json({ error: "Provider not found" }, { status: 404 });
+    if (result.error) {
+      const isPermissionError = result.error.includes("project key") || result.error.includes("unrestricted key");
+      return NextResponse.json(
+        { error: result.error },
+        { status: isPermissionError ? 422 : 500 }
+      );
     }
 
-    if (!provider.encryptedApiKey || !provider.keyIv) {
-      return NextResponse.json({ error: "No API key stored" }, { status: 422 });
-    }
-
-    const apiKey = decryptApiKey(provider.encryptedApiKey, provider.keyIv);
-    let snapshotsUpserted = 0;
-
-    if (provider.providerType === "openai") {
-      let usageDays;
-      try {
-        usageDays = await fetchOpenAIUsage(apiKey, 30);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to fetch usage";
-        if (msg.startsWith("PERMISSION_ERROR:")) {
-          return NextResponse.json(
-            { error: msg.replace("PERMISSION_ERROR: ", "") },
-            { status: 422 }
-          );
-        }
-        throw err;
-      }
-
-      for (const day of usageDays) {
-        await db
-          .insert(usageSnapshots)
-          .values({
-            userId,
-            providerId: provider.id,
-            model: day.model,
-            date: day.date,
-            inputTokens: day.inputTokens,
-            outputTokens: day.outputTokens,
-            totalTokens: day.totalTokens,
-            costUsd: day.costUsd.toFixed(8),
-            requestCount: day.requestCount,
-          })
-          .onConflictDoUpdate({
-            target: [usageSnapshots.providerId, usageSnapshots.model, usageSnapshots.date],
-            set: {
-              inputTokens: day.inputTokens,
-              outputTokens: day.outputTokens,
-              totalTokens: day.totalTokens,
-              costUsd: day.costUsd.toFixed(8),
-              requestCount: day.requestCount,
-            },
-          });
-        snapshotsUpserted++;
-      }
-    } else {
-      // Providers without public usage APIs — key stored, sync not yet supported
-      // Return success with 0 snapshots
-    }
-
-    // Update lastSyncedAt
-    await db
-      .update(providers)
-      .set({ lastSyncedAt: new Date(), updatedAt: new Date() })
-      .where(eq(providers.id, providerId));
-
-    return NextResponse.json({ success: true, snapshotsUpserted });
+    return NextResponse.json({ success: true, snapshotsUpserted: result.snapshotsUpserted });
   } catch (err) {
     console.error("Sync provider error:", err);
     return NextResponse.json({ error: "Failed to sync provider" }, { status: 500 });

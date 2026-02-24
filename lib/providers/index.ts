@@ -1,3 +1,13 @@
+export interface UsageDay {
+  date: string;        // YYYY-MM-DD
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd: number;
+  requestCount: number;
+}
+
 export type ProviderType =
   | "openai"
   | "anthropic"
@@ -38,7 +48,7 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "sk-ant-...",
     docsUrl: "https://console.anthropic.com/settings/keys",
-    syncSupported: false,
+    syncSupported: true,
   },
   groq: {
     label: "Groq",

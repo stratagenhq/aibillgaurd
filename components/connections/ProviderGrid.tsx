@@ -23,6 +23,21 @@ interface ProviderGridProps {
 
 type FormStep = "idle" | "connecting" | "syncing" | "done";
 
+function getSyncStatusDot(status: string, lastSyncedAt: Date | string | null): {
+  color: string;
+  label: string;
+} {
+  if (status === "error") return { color: "#ef4444", label: "Sync error" };
+  if (!lastSyncedAt) return { color: "#ef4444", label: "Never synced" };
+
+  const syncedMs = new Date(lastSyncedAt).getTime();
+  const ageMin = (Date.now() - syncedMs) / 60_000;
+
+  if (ageMin <= 5) return { color: "#22c55e", label: "Just synced" };
+  if (ageMin <= 60) return { color: "#f59e0b", label: "Synced recently" };
+  return { color: "#ef4444", label: "Sync outdated" };
+}
+
 export function ProviderGrid({ connected }: ProviderGridProps) {
   const router = useRouter();
   const [selected, setSelected] = useState<ProviderType | null>(null);
@@ -76,7 +91,7 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
       }
 
       setStep("syncing");
-      await fetch("/api/providers/sync", {
+      await fetch("/api/providers/auto-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ providerId: data.provider.id }),
@@ -96,7 +111,7 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
   async function handleSync(providerId: string) {
     setSyncingId(providerId);
     try {
-      await fetch("/api/providers/sync", {
+      await fetch("/api/providers/auto-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ providerId }),
@@ -127,6 +142,7 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
           const isConnected = !!conn;
           const isDeleting = conn && deletingId === conn.id;
           const isSyncing = conn && syncingId === conn.id;
+          const dot = isConnected ? getSyncStatusDot(conn.status, conn.lastSyncedAt) : null;
 
           return (
             <div
@@ -150,13 +166,18 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
                     <div className="text-sm font-medium" style={{ color: "var(--text)" }}>
                       {conn?.displayName || p.label}
                     </div>
-                    {isConnected ? (
+                    {isConnected && dot ? (
                       <div className="flex items-center gap-1 mt-0.5">
                         <CheckCircle size={10} style={{ color: "#22c55e" }} />
                         <span className="text-xs" style={{ color: "#22c55e" }}>Connected</span>
+                        <span
+                          className="inline-block w-1.5 h-1.5 rounded-full ml-1"
+                          style={{ background: dot.color }}
+                          title={dot.label}
+                        />
                         {conn.lastSyncedAt && (
                           <span className="text-xs" style={{ color: "var(--muted)" }}>
-                            · {formatRelativeTime(conn.lastSyncedAt)}
+                            {formatRelativeTime(conn.lastSyncedAt)}
                           </span>
                         )}
                       </div>
@@ -181,7 +202,7 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
               {/* Actions */}
               {isConnected ? (
                 <div className="flex items-center gap-2 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
-                  {conn.syncSupported && (
+                  {conn.syncSupported ? (
                     <button
                       onClick={() => handleSync(conn.id)}
                       disabled={!!isSyncing}
@@ -198,11 +219,16 @@ export function ProviderGrid({ connected }: ProviderGridProps) {
                       )}
                       {isSyncing ? "Syncing…" : "Sync"}
                     </button>
-                  )}
-                  {!conn.syncSupported && (
-                    <span className="text-xs" style={{ color: "var(--muted)" }}>
-                      Key stored · sync coming soon
-                    </span>
+                  ) : (
+                    <button
+                      disabled
+                      title="Sync not supported for this provider yet"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs cursor-not-allowed"
+                      style={{ background: "var(--bg3)", color: "var(--muted)", opacity: 0.5 }}
+                    >
+                      <RefreshCw size={11} />
+                      Sync
+                    </button>
                   )}
                   <button
                     onClick={() => handleDelete(conn.id, conn.displayName || p.label)}
