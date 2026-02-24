@@ -105,7 +105,7 @@ CREATE UNIQUE INDEX "snapshots_unique_idx" ON "usage_snapshots" USING btree ("pr
   for (const statement of statements) {
     const preview = statement.slice(0, 80).replace(/\n/g, " ");
     try {
-      await sql(statement);
+      await sql.query(statement);
       results.push({ statement: preview, status: "ok" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
