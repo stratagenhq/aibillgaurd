@@ -59,43 +59,59 @@ export async function validateOpenAIKey(apiKey: string): Promise<boolean> {
   }
 }
 
+async function fetchOneDayUsage(apiKey: string, date: string): Promise<UsageDay[]> {
+  const res = await fetch(
+    `https://api.openai.com/v1/usage?date=${date}`,
+    { headers: { Authorization: `Bearer ${apiKey}` } }
+  );
+  if (!res.ok) return [];
+  const json = await res.json();
+  const items: UsageDay[] = [];
+  for (const row of json.data ?? []) {
+    if (row.operation !== "completion") continue;
+    const model = row.snapshot_id as string;
+    const inputTokens = (row.n_context_tokens_total as number) ?? 0;
+    const outputTokens = (row.n_generated_tokens_total as number) ?? 0;
+    if (inputTokens + outputTokens === 0) continue;
+    items.push({
+      date,
+      model,
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      costUsd: calcCost(model, inputTokens, outputTokens),
+      requestCount: (row.n_requests as number) ?? 0,
+    });
+  }
+  return items;
+}
+
 export async function fetchOpenAIUsage(
   apiKey: string,
   days = 30
 ): Promise<UsageDay[]> {
   const dates = Array.from({ length: days }, (_, i) => dateOffsetDays(i + 1));
 
-  // Fetch in parallel batches of 5 to avoid rate limits
+  // Probe the most recent date to detect permission errors early
+  const probeRes = await fetch(
+    `https://api.openai.com/v1/usage?date=${dates[0]}`,
+    { headers: { Authorization: `Bearer ${apiKey}` } }
+  );
+  if (probeRes.status === 401 || probeRes.status === 403) {
+    throw new Error(
+      "PERMISSION_ERROR: This API key cannot access usage data. Use an unrestricted key (not a project key) with 'All' permissions from platform.openai.com/api-keys."
+    );
+  }
+  if (!probeRes.ok) {
+    throw new Error(`OpenAI usage API returned ${probeRes.status}`);
+  }
+
+  // Fetch all dates in parallel batches of 5 to avoid rate limits
   const results: UsageDay[] = [];
   for (let i = 0; i < dates.length; i += 5) {
     const batch = dates.slice(i, i + 5);
     const batchResults = await Promise.allSettled(
-      batch.map(async (date) => {
-        const res = await fetch(
-          `https://api.openai.com/v1/usage?date=${date}`,
-          { headers: { Authorization: `Bearer ${apiKey}` } }
-        );
-        if (!res.ok) return [];
-        const json = await res.json();
-        const items: UsageDay[] = [];
-        for (const row of json.data ?? []) {
-          if (row.operation !== "completion") continue;
-          const model = row.snapshot_id as string;
-          const inputTokens = (row.n_context_tokens_total as number) ?? 0;
-          const outputTokens = (row.n_generated_tokens_total as number) ?? 0;
-          if (inputTokens + outputTokens === 0) continue;
-          items.push({
-            date,
-            model,
-            inputTokens,
-            outputTokens,
-            totalTokens: inputTokens + outputTokens,
-            costUsd: calcCost(model, inputTokens, outputTokens),
-            requestCount: (row.n_requests as number) ?? 0,
-          });
-        }
-        return items;
-      })
+      batch.map((date) => fetchOneDayUsage(apiKey, date))
     );
     for (const r of batchResults) {
       if (r.status === "fulfilled") results.push(...r.value);

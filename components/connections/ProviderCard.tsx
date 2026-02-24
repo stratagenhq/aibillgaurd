@@ -17,6 +17,7 @@ export function ProviderCard({ provider, monthCost }: ProviderCardProps) {
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const meta = PROVIDER_META[provider.providerType as keyof typeof PROVIDER_META];
   const label = provider.displayName || meta?.label || provider.providerType;
@@ -24,6 +25,7 @@ export function ProviderCard({ provider, monthCost }: ProviderCardProps) {
   async function handleSync() {
     setSyncing(true);
     setSyncResult(null);
+    setSyncError(null);
     try {
       const res = await fetch("/api/providers/sync", {
         method: "POST",
@@ -32,13 +34,20 @@ export function ProviderCard({ provider, monthCost }: ProviderCardProps) {
       });
       const data = await res.json();
       if (res.ok) {
-        setSyncResult(`Synced ${data.snapshotsUpserted} snapshots`);
+        if (data.snapshotsUpserted === 0) {
+          setSyncError(
+            "No usage data found. This usually means your API key doesn't have usage permissions. " +
+            "Delete this connection and reconnect with a key that has 'All' permissions (not a restricted project key)."
+          );
+        } else {
+          setSyncResult(`Synced ${data.snapshotsUpserted} day${data.snapshotsUpserted !== 1 ? "s" : ""} of usage data`);
+        }
         router.refresh();
       } else {
-        setSyncResult(data.error ?? "Sync failed");
+        setSyncError(data.error ?? "Sync failed");
       }
     } catch {
-      setSyncResult("Network error");
+      setSyncError("Network error — please try again");
     } finally {
       setSyncing(false);
     }
@@ -144,7 +153,32 @@ export function ProviderCard({ provider, monthCost }: ProviderCardProps) {
       </div>
 
       {syncResult && (
-        <p className="text-xs" style={{ color: "var(--muted)" }}>{syncResult}</p>
+        <p className="text-xs flex items-center gap-1.5" style={{ color: "#22c55e" }}>
+          <CheckCircle size={11} />
+          {syncResult}
+        </p>
+      )}
+      {syncError && (
+        <div
+          className="rounded-lg p-3"
+          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
+        >
+          <p className="text-xs flex items-start gap-1.5" style={{ color: "#ef4444" }}>
+            <AlertCircle size={11} className="shrink-0 mt-0.5" />
+            {syncError}
+          </p>
+          {provider.providerType === "openai" && (
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs mt-1.5 inline-block"
+              style={{ color: "var(--accent)" }}
+            >
+              Create a new key with full permissions →
+            </a>
+          )}
+        </div>
       )}
     </div>
   );

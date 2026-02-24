@@ -34,7 +34,19 @@ export async function POST(req: Request) {
     let snapshotsUpserted = 0;
 
     if (provider.providerType === "openai") {
-      const usageDays = await fetchOpenAIUsage(apiKey, 30);
+      let usageDays;
+      try {
+        usageDays = await fetchOpenAIUsage(apiKey, 30);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to fetch usage";
+        if (msg.startsWith("PERMISSION_ERROR:")) {
+          return NextResponse.json(
+            { error: msg.replace("PERMISSION_ERROR: ", "") },
+            { status: 422 }
+          );
+        }
+        throw err;
+      }
 
       for (const day of usageDays) {
         await db
