@@ -4,10 +4,21 @@
   "description": "Track AI API usage in AiBillGuard — add 2 lines, see your costs in real time.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc"
   },
-  "keywords": ["openai", "anthropic", "cost", "usage", "tracking"],
-  "license": "MIT"
+  "keywords": [
+    "openai",
+    "anthropic",
+    "cost",
+    "usage",
+    "tracking"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
