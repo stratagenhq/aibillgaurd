@@ -39,3 +39,13 @@ No test framework is configured yet. When adding one, prefer Vitest.
 ## Environment Variables
 
 All required keys are in `.env.local`. When adding new integrations, add the corresponding env var there and document its purpose inline.
+
+## "update doc" Command
+
+When the user says "update doc" (in any project), always update `PROJECT_HANDOFF.md` in the project root to reflect everything built in the current session. If `PROJECT_HANDOFF.md` does not exist, create it from scratch. This applies to every project, not just this one.
+
+`PROJECT_HANDOFF.md` must contain:
+- What was built (files created/modified, features added)
+- What is working vs broken
+- Immediate next steps
+- A copy-paste resume prompt for a new model to pick up where we left off
